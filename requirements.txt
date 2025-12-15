@@ -1,0 +1,23 @@
+# Основные зависимости Django
+Django
+psycopg2-binary
+
+# Разработка и тестирование
+pytest
+pytest-django
+pytest-cov
+
+# Утилиты разработки
+python-dotenv
+ipython
+
+# Безопасность и валидация
+phonenumbers
+
+# Форматирование кода
+black
+flake8
+isort
+
+# Статические файлы
+django-bootstrap5
