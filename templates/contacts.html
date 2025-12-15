@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Контакты - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<h1>Контакты</h1>
+
+<div class="contact-info">
+    <div class="contact-item">
+        <div class="contact-icon">📍</div>
+        <div>
+            <h3>Наш адрес</h3>
+            <p>ул. Демонстрации, д. 42А</p>
+        </div>
+    </div>
+    
+    <div class="contact-item">
+        <div class="contact-icon">📞</div>
+        <div>
+            <h3>Телефон</h3>
+            <p>+7 (123) 456-78-90</p>
+        </div>
+    </div>
+    
+    <div class="contact-item">
+        <div class="contact-icon">⏰</div>
+        <div>
+            <h3>Время работы</h3>
+            <p>10:00 - 22:00</p>
+        </div>
+    </div>
+
+    <div class="contact-item">
+        <div class="contact-icon">👥</div>
+        <div>
+            <h3>Мы в соцсетях</h3>
+            <p>
+                <a href="https://vk.com/detskoe_cafe_raduga" target="_blank" style="color: #4ecdc4; text-decoration: none; font-weight: bold;">
+                    💙 Группа ВКонтакте
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="contact-form-section" style="margin-top: 40px;">
+    <h2 style="text-align: center; color: #ff6b6b; margin-bottom: 20px;">Свяжитесь с нами</h2>
+    
+    <div class="contact-form-container" style="max-width: 600px; margin: 0 auto;">
+        <form method="post" class="contact-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+                {{ form.name }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                {{ form.email }}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.message.id_for_label }}">{{ form.message.label }}</label>
+                {{ form.message }}
+            </div>
+            
+            <button type="submit" class="submit-button" style="width: 100%; margin-top: 20px;">
+                Отправить сообщение
+            </button>
+        </form>
+    </div>
+</div>
+
+<div style="margin-top: 40px;">
+    <h2 style="text-align: center; color: #ff6b6b; margin-bottom: 20px;">Мы на карте</h2>
+    <iframe 
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d694.0152724731812!2d37.588234494461254!3d54.19106031593219!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x41344070483a97b1%3A0xc2cfa3481dfa6b8c!2z0JTQtdC80L7QvdGB0YLRgNCw0YbQuNC4INGD0LsuLCA0MtCQLCDQotGD0LvQsCwg0KLRg9C70YzRgdC60LDRjyDQvtCx0LsuLCAzMDAwMzQ!5e0!3m2!1sru!2sru!4v1760983480834!5m2!1sru!2sru"
+        height="400" 
+        frameborder="0"
+        style="border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);"
+    ></iframe>
+</div>
+
+{% endblock %}

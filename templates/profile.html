@@ -1,0 +1,1125 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <h1>Личный кабинет</h1>
+    
+    <div class="profile-info">
+        <h3>Информация о пользователе</h3>
+        <form method="post" class="profile-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="username">Имя пользователя:</label>
+                <input type="text" id="username" name="username" value="{{ user.username|default:'' }}" 
+                       class="form-control" placeholder="Введите ваше имя">
+            </div>
+            <button type="submit" class="update-profile-button">Обновить имя</button>
+        </form>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Дата регистрации:</strong> {{ user.date_joined|date:"d.m.Y H:i" }}</p>
+    </div>
+    
+    <div class="profile-actions">
+        <a href="{% url 'homepage:rate_cafe' %}" class="rate-button">Оценить кафе</a>
+        <a href="{% url 'homepage:reviews' %}" class="reviews-button">Все отзывы</a>
+        <a href="{% url 'homepage:password_change' %}" class="change-password-button">Сменить пароль</a>
+        <a href="{% url 'homepage:logout' %}" class="logout-button">Выйти</a>
+    </div>
+    
+    <div class="user-orders">
+        <h3>Мои заказы ({{ orders|length }})</h3>
+        {% if orders %}
+            {% for order in orders %}
+            <div class="order-item">
+                <div class="order-header">
+                    <strong>Заказ #{{ order.id }}</strong>
+                    <span class="order-date">{{ order.created_at|date:"d.m.Y H:i" }}</span>
+                    <span class="order-total">{{ order.total_price }} руб.</span>
+                </div>
+                
+                <!-- Компактная информация в одну строку -->
+                <div class="order-meta">
+                    <span class="meta-item delivery-{{ order.delivery_method }}">
+                        📦 {% if order.delivery_method == 'delivery' %}Доставка{% else %}Самовывоз{% endif %}
+                    </span>
+                    <span class="meta-item payment-{{ order.payment_method }}">
+                        💳 {% if order.payment_method == 'cash' %}Наличными{% elif order.payment_method == 'card' %}Картой{% else %}Онлайн{% endif %}
+                    </span>
+                    {% if order.delivery_method == 'delivery' %}
+                    <span class="meta-item address">📍 {{ order.customer_address }}</span>
+                    {% endif %}
+                </div>
+                
+                <div class="order-items">
+                    <div class="items-title">Товары:</div>
+                    {% for item in order.items.all %}
+                    <div class="order-product">
+                        <span class="product-name">{{ item.product_title }}</span>
+                        <span class="product-quantity">× {{ item.quantity }}</span>
+                        <span class="product-price">{{ item.product_price|floatformat:2 }} руб.</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-orders">У вас еще нет заказов</p>
+        {% endif %}
+    </div>
+    
+    <div class="user-ratings">
+        <h3>Мои отзывы ({{ ratings|length }})</h3>
+        {% if ratings %}
+            {% for rating in ratings %}
+            <div class="rating-item">
+                <div class="rating-header">
+                    <strong>Дата:</strong> {{ rating.created_at|date:"d.m.Y H:i" }}
+                </div>
+                <div class="rating-scores">
+                    <span class="score-item">Еда: {{ rating.food_quality }}/5</span>
+                    <span class="score-item">Обслуживание: {{ rating.service_quality }}/5</span>
+                    <span class="score-item">Атмосфера: {{ rating.atmosphere }}/5</span>
+                    <span class="score-item">Чистота: {{ rating.cleanliness }}/5</span>
+                    <span class="score-item overall"><strong>Общее: {{ rating.overall_rating|floatformat:1 }}/5</strong></span>
+                </div>
+                {% if rating.comment %}
+                <div class="rating-comment">
+                    <strong>Комментарий:</strong> {{ rating.comment }}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-ratings">Вы еще не оставляли отзывов</p>
+        {% endif %}
+    </div>
+
+    <div class="user-bookings">
+        <h3>Мои бронирования ({{ bookings|length }})</h3>
+        {% if bookings %}
+            {% for booking in bookings %}
+            <div class="booking-item status-{{ booking.status }}">
+                <div class="booking-header">
+                    <div class="booking-title">
+                        <strong>Бронирование #{{ booking.id }}</strong>
+                        <span class="booking-status">{{ booking.get_status_display }}</span>
+                    </div>
+                    <div class="booking-date-time">
+                        <span class="booking-date">📅 {{ booking.event_date|date:"d.m.Y" }}</span>
+                        <span class="booking-time">🕐 {{ booking.event_time|time:"H:i" }} - {{ booking.event_end_time|time:"H:i" }}</span>
+                    </div>
+                </div>
+                
+                <div class="booking-details">
+                    <div class="booking-info">
+                        <span class="info-item">👥 {{ booking.guests_count }} гостей</span>
+                        <span class="info-item">🎉 {{ booking.get_event_type_display }}</span>
+                        <span class="info-item">💰 {{ booking.total_cost }} руб</span>
+                    </div>
+                    
+                    {% if booking.services %}
+                    <div class="booking-services">
+                        <strong>Услуги:</strong>
+                        <ul>
+                            {% for service in booking.services %}
+                                <li>
+                                    {% if service == 'animator' %}🤹 Аниматор
+                                    {% elif service == 'cake' %}🎂 Торт
+                                    {% elif service == 'decorations' %}🎨 Украшение зала
+                                    {% elif service == 'photographer' %}📷 Фотограф
+                                    {% else %}{{ service }}{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    {% if booking.comments %}
+                    <div class="booking-comments">
+                        <strong>Пожелания:</strong>
+                        <p>{{ booking.comments }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="booking-contact">
+                        <strong>Телефон:</strong> {{ booking.phone }}
+                    </div>
+                </div>
+                
+                <div class="booking-footer">
+                    <span class="booking-created">Создано: {{ booking.created_at|date:"d.m.Y H:i" }}</span>
+                    {% if booking.status == 'pending' %}
+                    <button class="cancel-booking" 
+                            onclick="openCancelModal(
+                                {{ booking.id }}, 
+                                '{{ booking.event_date|date:"d.m.Y" }}',
+                                '{{ booking.event_time|time:"H:i" }}',
+                                '{{ booking.get_event_type_display }}',
+                                {{ booking.guests_count }},
+                                {{ booking.total_cost }}
+                            )">
+                        Отменить бронирование
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-bookings">У вас еще нет бронирований</p>
+        {% endif %}
+    </div>
+    <!-- Модальное окно подтверждения отмены -->
+    <div id="cancelModal" class="modal">
+        <div class="modal-content cancel-modal-content">
+            <div class="cancel-icon">⚠️</div>
+            <h3 id="cancelModalTitle">Отменить бронирование</h3>
+            <p id="cancelModalMessage">Вы уверены, что хотите отменить это бронирование?</p>
+            
+            <div class="cancel-modal-info" id="cancelModalInfo">
+                <!-- Здесь будет динамическая информация -->
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-button confirm" id="confirmCancelBtn">Да, отменить</button>
+                <button class="modal-button cancel" onclick="closeCancelModal()">Нет, оставить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.profile-info {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.profile-form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #4ecdc4;
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+}
+
+.update-profile-button {
+    background: #4ecdc4;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.update-profile-button:hover {
+    background: #3db8af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+}
+
+.profile-actions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.rate-button, .reviews-button, .logout-button {
+    padding: 12px 25px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Цвета как на скриншоте */
+.rate-button {
+    background: #4ecdc4;
+    color: white;
+}
+
+.rate-button:hover {
+    background: #3db8af;
+    transform: translateY(-2px);
+}
+
+.reviews-button {
+    background: #ffd166;
+    color: #333;
+}
+
+.reviews-button:hover {
+    background: #ffc847;
+    transform: translateY(-2px);
+}
+
+.logout-button {
+    background: #ef476f;
+    color: white;
+}
+
+.logout-button:hover {
+    background: #ec325f;
+    transform: translateY(-2px);
+}
+
+.user-orders, .user-ratings {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.user-orders h3, .user-ratings h3 {
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 24px;
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 10px;
+}
+
+.order-item {
+    background: #f8f9fa;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #4ecdc4;
+    transition: all 0.3s ease;
+}
+
+.order-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.order-header strong {
+    font-size: 18px;
+    color: #333;
+}
+
+.order-date {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.order-total {
+    color: #ef476f;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Компактная информация о заказе */
+.order-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    padding: 0;
+    background: none;
+}
+
+.meta-item {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 2px solid transparent;
+}
+
+.meta-item.delivery-delivery {
+    background: #f3e5f5;
+    color: #7b1fa2;
+    border-color: #e1bee7;
+}
+
+.meta-item.delivery-pickup {
+    background: #e3f2fd;
+    color: #1976d2;
+    border-color: #bbdefb;
+}
+
+.meta-item.payment-cash {
+    background: #e8f5e8;
+    color: #2e7d32;
+    border-color: #c8e6c9;
+}
+
+.meta-item.payment-card {
+    background: #fff3e0;
+    color: #ef6c00;
+    border-color: #ffe0b2;
+}
+
+.meta-item.payment-online {
+    background: #e8eaf6;
+    color: #303f9f;
+    border-color: #c5cae9;
+}
+
+.meta-item.address {
+    background: #f8f9fa;
+    color: #495057;
+    border: 2px solid #dee2e6;
+}
+
+/* Стили для товаров */
+.order-items {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(78, 205, 196, 0.3);
+}
+
+.items-title {
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #495057;
+    font-size: 16px;
+}
+
+.order-product {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+.order-product:hover {
+    background: rgba(255,255,255,0.5);
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin: 0 -15px;
+}
+
+.order-product:last-child {
+    border-bottom: none;
+}
+
+.product-name {
+    flex: 1;
+    color: #333;
+}
+
+.product-quantity {
+    color: #6c757d;
+    margin: 0 10px;
+}
+
+.product-price {
+    font-weight: 600;
+    color: #ef476f;
+}
+
+/* Стили для отзывов */
+.rating-item {
+    background: #f8f9fa;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #ffd166;
+    transition: all 0.3s ease;
+}
+
+.rating-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.rating-header {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.rating-scores {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 15px 0;
+}
+
+.score-item {
+    padding: 8px 15px;
+    background: white;
+    border-radius: 20px;
+    border: 2px solid #e9ecef;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.score-item:hover {
+    border-color: #4ecdc4;
+    transform: translateY(-1px);
+}
+
+.score-item.overall {
+    background: #4ecdc4;
+    color: white;
+    border-color: #4ecdc4;
+}
+
+.rating-comment {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border-left: 4px solid #ffd166;
+    line-height: 1.5;
+}
+
+.no-orders, .no-ratings {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 2px dashed #dee2e6;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .profile-page {
+        padding: 15px;
+    }
+    
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .order-meta {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .rating-scores {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .profile-actions {
+        flex-direction: column;
+    }
+    
+    .rate-button, .reviews-button, .logout-button {
+        text-align: center;
+    }
+    
+    .order-product {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .product-price {
+        align-self: flex-end;
+    }
+}
+
+.change-password-button {
+    background: #ffd166;
+    color: #333;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.change-password-button:hover {
+    background: #ffc847;
+    transform: translateY(-2px);
+}
+
+/* Для бронирования */
+.user-bookings {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.booking-item {
+    background: #f8f9fa;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+
+.booking-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+/* Статусы бронирования */
+.status-pending {
+    border-left-color: #ffd166;
+}
+
+.status-confirmed {
+    border-left-color: #4ecdc4;
+}
+
+.status-cancelled {
+    border-left-color: #ef476f;
+    opacity: 0.7;
+}
+
+.status-completed {
+    border-left-color: #06d6a0;
+}
+
+.booking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.booking-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.booking-status {
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.status-pending .booking-status {
+    background: #ffd166;
+    color: #333;
+}
+
+.status-confirmed .booking-status {
+    background: #4ecdc4;
+    color: white;
+}
+
+.status-cancelled .booking-status {
+    background: #ef476f;
+    color: white;
+}
+
+.status-completed .booking-status {
+    background: #06d6a0;
+    color: white;
+}
+
+.booking-date-time {
+    display: flex;
+    gap: 20px;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.booking-details {
+    margin: 20px 0;
+}
+
+.booking-info {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.info-item {
+    padding: 8px 15px;
+    background: white;
+    border-radius: 20px;
+    border: 2px solid #e9ecef;
+    font-size: 14px;
+}
+
+.booking-services ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.booking-services li {
+    margin: 5px 0;
+    color: #495057;
+}
+
+.booking-comments {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border-left: 3px solid #4ecdc4;
+}
+
+.booking-contact {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+.booking-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+.booking-created {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.cancel-booking {
+    background: #ef476f;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.cancel-booking:hover {
+    background: #ec325f;
+}
+
+.no-bookings {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 2px dashed #dee2e6;
+}
+
+/* Стили для модального окна отмены */
+.cancel-modal-content {
+    text-align: center;
+    max-width: 450px;
+    border: 4px solid #ef476f;
+    animation: modalAppear 0.3s ease-out;
+}
+
+.cancel-icon {
+    font-size: 70px;
+    margin-bottom: 20px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.cancel-modal-content h3 {
+    color: #ef476f;
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.cancel-modal-content p {
+    color: #555;
+    font-size: 18px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.cancel-modal-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+    text-align: left;
+    border-left: 4px solid #ffd166;
+}
+
+.booking-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 8px 0;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.booking-info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #555;
+}
+
+.info-value {
+    color: #333;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.modal-button {
+    padding: 14px 30px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 16px;
+    min-width: 160px;
+    flex: 1;
+}
+
+.modal-button.confirm {
+    background: linear-gradient(135deg, #ef476f 0%, #ff6b6b 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(239, 71, 111, 0.3);
+}
+
+.modal-button.confirm:hover {
+    background: linear-gradient(135deg, #ec325f 0%, #ff5252 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 71, 111, 0.4);
+}
+
+.modal-button.cancel {
+    background: linear-gradient(135deg, #4ecdc4 0%, #6ae2d9 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+}
+
+.modal-button.cancel:hover {
+    background: linear-gradient(135deg, #3db8af 0%, #5ad1c8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+}
+
+/* Анимация появления */
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Анимация закрытия */
+@keyframes modalDisappear {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+}
+
+.modal.closing {
+    animation: modalDisappear 0.2s ease-out forwards;
+}
+
+/* Стили для уведомления об успехе */
+.success-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #06d6a0 0%, #4ecdc4 100%);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(6, 214, 160, 0.3);
+    z-index: 9999;
+    animation: slideIn 0.3s ease-out;
+    transition: all 0.3s ease;
+    max-width: 350px;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.notification-icon {
+    font-size: 24px;
+}
+
+.notification-text {
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+/* Стили для кнопки отмены в списке */
+.cancel-booking {
+    background: linear-gradient(135deg, #ef476f 0%, #ff6b6b 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    box-shadow: 0 4px 10px rgba(239, 71, 111, 0.2);
+}
+
+.cancel-booking:hover {
+    background: linear-gradient(135deg, #ec325f 0%, #ff5252 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(239, 71, 111, 0.3);
+}
+
+.cancel-booking:active {
+    transform: translateY(0);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .cancel-modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+    }
+    
+    .modal-button {
+        width: 100%;
+    }
+    
+    .success-notification {
+        left: 20px;
+        right: 20px;
+        max-width: none;
+    }
+}
+</style>
+
+<script>
+let currentBookingId = null;
+
+// Открытие модального окна отмены
+function openCancelModal(bookingId, date, time, eventType, guests, price) {
+    currentBookingId = bookingId;
+    
+    // Заполняем информацию о бронировании
+    document.getElementById('cancelModalInfo').innerHTML = `
+        <div class="booking-info-row">
+            <span class="info-label">📅 Дата:</span>
+            <span class="info-value">${date}</span>
+        </div>
+        <div class="booking-info-row">
+            <span class="info-label">🕐 Время:</span>
+            <span class="info-value">${time}</span>
+        </div>
+        <div class="booking-info-row">
+            <span class="info-label">🎉 Тип:</span>
+            <span class="info-value">${eventType}</span>
+        </div>
+        <div class="booking-info-row">
+            <span class="info-label">👥 Гостей:</span>
+            <span class="info-value">${guests}</span>
+        </div>
+        <div class="booking-info-row">
+            <span class="info-label">💰 Стоимость:</span>
+            <span class="info-value">${price} руб.</span>
+        </div>
+    `;
+    
+    // Показываем модальное окно
+    document.getElementById('cancelModal').style.display = 'block';
+}
+
+// Закрытие модального окна
+function closeCancelModal() {
+    const modal = document.getElementById('cancelModal');
+    modal.classList.add('closing');
+    
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+        currentBookingId = null;
+    }, 200);
+}
+
+// Функция отмены бронирования
+function cancelBooking() {
+    if (!currentBookingId) return;
+    
+    // Блокируем кнопку
+    const confirmBtn = document.getElementById('confirmCancelBtn');
+    const originalText = confirmBtn.textContent;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Отмена...';
+    
+    fetch(`/booking/${currentBookingId}/cancel/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Показываем успешное сообщение
+            showSuccessCancelMessage(data.message || 'Бронирование успешно отменено!');
+            closeCancelModal();
+            
+            // Обновляем страницу через 2 секунды
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            alert('Ошибка: ' + (data.error || 'Не удалось отменить бронирование'));
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Произошла ошибка при отмене бронирования');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+    });
+}
+
+// Показ успешного сообщения
+function showSuccessCancelMessage(message) {
+    // Создаем временное уведомление
+    const notification = document.createElement('div');
+    notification.className = 'success-notification';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <div class="notification-icon">✅</div>
+            <div class="notification-text">${message}</div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Убираем через 3 секунды
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // Назначаем обработчик кнопке подтверждения
+    document.getElementById('confirmCancelBtn').addEventListener('click', cancelBooking);
+    
+    // Закрытие модального окна при клике вне его
+    document.getElementById('cancelModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCancelModal();
+        }
+    });
+    
+    // Закрытие при нажатии ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeCancelModal();
+        }
+    });
+});
+
+function getCSRFToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    return csrfToken ? csrfToken.value : '';
+}
+</script>
+{% endblock %}

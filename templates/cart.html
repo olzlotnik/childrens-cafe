@@ -1,0 +1,943 @@
+{% extends "base.html" %}
+
+{% block title %}Корзина - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="cart-page">
+    <h1>Корзина</h1>
+    
+    {% if cart_items %}
+    <div class="cart-items">
+        {% for item in cart_items %}
+        <div class="cart-item">
+            <div class="item-image">
+                <img src="{{ item.product.image }}" alt="{{ item.product.title }}">
+            </div>
+            <div class="item-details">
+                <h3>{{ item.product.title }}</h3>
+                <p class="item-price">{{ item.product.price }} руб. × {{ item.quantity }} = {{ item.total }} руб.</p>
+            </div>
+            <div class="item-actions">
+                <form method="post" action="{% url 'menu:update_cart' item.product.id %}" class="quantity-form">
+                    {% csrf_token %}
+                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="10" class="quantity-input">
+                    <button type="submit" class="update-button">Обновить</button>
+                </form>
+                <a href="{% url 'menu:remove_from_cart' item.product.id %}" class="remove-button">Удалить</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Секция доставки - показывается только если выбран способ доставки -->
+    <div class="delivery-section" id="delivery_section" style="display: none;">
+        <h3>Информация о доставке</h3>
+        <div class="delivery-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="delivery_city">Город доставки:</label>
+                    <select id="delivery_city" name="delivery_city" class="delivery-select">
+                        {% for city in delivery_cities %}
+                        <option value="{{ city.key }}" {% if delivery_city == city.key %}selected{% endif %}>
+                            {{ city.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group" id="distance_group" {% if delivery_city == 'tula' %}style="display: none;"{% endif %}>
+                    <label for="delivery_distance">Расстояние (км):</label>
+                    <input type="number" id="delivery_distance" name="delivery_distance" 
+                           value="{{ delivery_distance }}" min="0" max="500" class="distance-input">
+                </div>
+            </div>
+            
+            <div class="form-help">
+                <small>Для городов кроме Тулы укажите расстояние от Тулы до вашего города</small>
+            </div>
+            
+            <button type="button" id="update_delivery" class="update-delivery-button">Рассчитать доставку</button>
+        </div>
+        
+        <div class="delivery-preview">
+            <p><strong>Стоимость доставки:</strong> <span id="delivery_price">0</span> руб.</p>
+        </div>
+    </div>
+    
+    <div class="cart-summary">
+        <div class="total-price">
+            <h3>Товары: {{ total_price }} руб.</h3>
+            <h3 id="delivery_summary_line" style="display: none;">Доставка: <span id="summary_delivery">0</span> руб.</h3>
+            <h3>Итого: <span id="final_total">{{ total_price }}</span> руб.</h3>
+        </div>
+        
+        <div class="delivery-choice">
+            <h3>Способ получения:</h3>
+            <div class="delivery-options">
+                <label class="delivery-option">
+                    <input type="radio" name="delivery_type" value="pickup" checked> 
+                    Самовывоз (бесплатно)
+                </label>
+                <label class="delivery-option">
+                    <input type="radio" name="delivery_type" value="delivery">
+                    Доставка
+                </label>
+            </div>
+        </div>
+        
+        <div class="cart-actions">
+            <a href="{% url 'menu:clear_cart' %}" class="clear-cart-button">Очистить корзину</a>
+            <a href="{% url 'menu:menu_list' %}" class="continue-shopping">Продолжить покупки</a>
+            {% if request.user.is_authenticated %}
+                <button onclick="openOrderModal()" class="checkout-button">Оформить заказ</button>
+            {% else %}
+                <a href="{% url 'homepage:login' %}" class="checkout-button" style="background: #ff6b6b;">Войдите для оформления заказа</a>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-cart">
+        <div class="empty-icon">🛒</div>
+        <h3>Корзина пуста</h3>
+        <p>Добавьте товары из меню, чтобы сделать заказ</p>
+        <a href="{% url 'menu:menu_list' %}" class="back-to-menu">Перейти в меню</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Модальное окно оформления заказа -->
+<div id="orderModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeOrderModal()">&times;</span>
+        <h2>Оформление заказа</h2>
+        <form method="post" action="{% url 'menu:create_order' %}" id="orderForm">
+            {% csrf_token %}
+            
+            <!-- Эти поля будут автоматически обновляться скриптом -->
+            <input type="hidden" id="final_delivery_method" name="delivery_method" value="pickup">
+            <input type="hidden" id="final_delivery_city" name="delivery_city" value="tula">
+            <input type="hidden" id="final_delivery_distance" name="delivery_distance" value="0">
+            <input type="hidden" id="final_delivery_price" name="delivery_price" value="0">
+            
+            <!-- Информация о способе получения -->
+            <div class="delivery-info-summary">
+                <h3>Способ получения: <span id="delivery_method_display">Самовывоз</span></h3>
+                <div id="order_delivery_details" style="display: none;">
+                    <div class="delivery-details-grid">
+                        <div class="delivery-detail">
+                            <strong>Город:</strong> <span id="order_city_name">Тула</span>
+                        </div>
+                        <div class="delivery-detail" id="order_distance_detail" style="display: none;">
+                            <strong>Расстояние:</strong> <span id="order_distance_value">0 км</span>
+                        </div>
+                        <div class="delivery-detail">
+                            <strong>Стоимость доставки:</strong> <span id="order_delivery_price_value">0 руб.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="payment_method">Способ оплаты:</label>
+                <select id="payment_method" name="payment_method" required>
+                    <option value="cash">Наличными при получении</option>
+                    <option value="card">Картой при получении</option>
+                    <option value="online">Онлайн оплата</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="customer_name">Ваше имя: *</label>
+                <input type="text" id="customer_name" name="customer_name" required 
+                    placeholder="Иван Иванов" minlength="2" maxlength="100">
+            </div>
+
+            <div class="form-group">
+                <label for="customer_phone">Телефон: *</label>
+                <input type="tel" id="customer_phone" name="customer_phone" required 
+                    placeholder="+7 (999) 123-45-67" pattern="^\+7\s?\(?\d{3}\)?\s?\d{3}-?\d{2}-?\d{2}$">
+                <small class="form-text">Форматы: +7XXXXXXXXXX, 8XXXXXXXXXX, +7 (XXX) XXX-XX-XX</small>
+            </div>
+
+            <div class="form-group" id="address_field_group" style="display: none;">
+                <label for="customer_address">Адрес доставки: *</label>
+                <textarea id="customer_address" name="customer_address" rows="3" 
+                        placeholder="Улица, дом, квартира" minlength="10" maxlength="500"></textarea>
+                <small class="form-text">Минимум 10 символов</small>
+            </div>
+            
+            <div class="order-summary">
+                <h3>Ваш заказ:</h3>
+                {% for item in cart_items %}
+                <p>{{ item.product.title }} × {{ item.quantity }} - {{ item.total }} руб.</p>
+                {% endfor %}
+                <p id="modal_delivery_line" style="display: none;">Доставка: <span id="modal_delivery_price">0</span> руб.</p>
+                <p class="total">Итого: <span id="modal_final_total">{{ total_price }}</span> руб.</p>
+            </div>
+            
+            <button type="submit" class="submit-order-button">Подтвердить заказ</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Текущая стоимость доставки
+var currentDeliveryPrice = 0;
+
+// Простые функции для модального окна
+function openOrderModal() {
+    // Сначала обновляем данные в модальном окне
+    updateOrderModal();
+    
+    // Затем показываем модальное окно
+    document.getElementById('orderModal').style.display = 'block';
+    
+    // Убедимся, что все поля корректно отображаются
+    setTimeout(function() {
+        updateOrderModal();
+    }, 100);
+}
+
+function closeOrderModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
+
+function updateOrderModal() {
+    var totalPrice = {{ total_price }};
+    var deliveryMethod = getSelectedDeliveryMethod(); // Получаем выбранный способ
+    
+    // Обновляем скрытые поля формы
+    document.getElementById('final_delivery_method').value = deliveryMethod;
+    
+    var finalTotal = totalPrice;
+    var deliveryPrice = 0;
+    
+    if (deliveryMethod === 'delivery') {
+        deliveryPrice = currentDeliveryPrice;
+        finalTotal = totalPrice + deliveryPrice;
+        
+        // Убедимся, что поля доставки заполнены
+        var citySelect = document.getElementById('delivery_city');
+        if (citySelect) {
+            document.getElementById('final_delivery_city').value = citySelect.value;
+        }
+        var distanceInput = document.getElementById('delivery_distance');
+        if (distanceInput) {
+            document.getElementById('final_delivery_distance').value = distanceInput.value || 0;
+        }
+        document.getElementById('final_delivery_price').value = deliveryPrice;
+    }
+    
+    // Обновляем отображение
+    document.getElementById('modal_final_total').textContent = finalTotal.toFixed(2);
+    
+    var deliveryMethodDisplay = document.getElementById('delivery_method_display');
+    var deliveryDetails = document.getElementById('order_delivery_details');
+    var addressFieldGroup = document.getElementById('address_field_group');
+    var modalDeliveryLine = document.getElementById('modal_delivery_line');
+    
+    if (deliveryMethod === 'delivery') {
+        deliveryMethodDisplay.textContent = 'Доставка';
+        deliveryDetails.style.display = 'block';
+        addressFieldGroup.style.display = 'block';
+        modalDeliveryLine.style.display = 'block';
+        
+        // Обновляем детали доставки
+        var citySelect = document.getElementById('delivery_city');
+        if (citySelect) {
+            var cityName = citySelect.options[citySelect.selectedIndex].text.split(' (')[0];
+            document.getElementById('order_city_name').textContent = cityName;
+            
+            // Показываем/скрываем расстояние
+            var distanceDetail = document.getElementById('order_distance_detail');
+            var distanceInput = document.getElementById('delivery_distance');
+            if (citySelect.value !== 'tula' && distanceInput && distanceInput.value > 0) {
+                distanceDetail.style.display = 'block';
+                document.getElementById('order_distance_value').textContent = distanceInput.value + ' км';
+            } else {
+                distanceDetail.style.display = 'none';
+            }
+        }
+        
+        document.getElementById('modal_delivery_price').textContent = deliveryPrice;
+        document.getElementById('order_delivery_price_value').textContent = deliveryPrice + ' руб.';
+    } else {
+        deliveryMethodDisplay.textContent = 'Самовывоз';
+        deliveryDetails.style.display = 'none';
+        addressFieldGroup.style.display = 'none';
+        modalDeliveryLine.style.display = 'none';
+        document.getElementById('final_delivery_price').value = 0;
+    }
+}
+
+function getSelectedDeliveryMethod() {
+    var pickupRadio = document.querySelector('input[name="delivery_type"][value="pickup"]');
+    if (pickupRadio && pickupRadio.checked) {
+        return 'pickup';
+    }
+    return 'delivery';
+}
+
+function updateTotalPrice() {
+    var totalPrice = {{ total_price }};
+    var deliveryMethod = getSelectedDeliveryMethod();
+    var finalTotal = totalPrice;
+    
+    if (deliveryMethod === 'delivery') {
+        finalTotal = totalPrice + currentDeliveryPrice;
+        document.getElementById('delivery_summary_line').style.display = 'block';
+        document.getElementById('summary_delivery').textContent = currentDeliveryPrice;
+    } else {
+        document.getElementById('delivery_summary_line').style.display = 'none';
+        currentDeliveryPrice = 0;
+    }
+    
+    document.getElementById('final_total').textContent = finalTotal.toFixed(2);
+    
+    // Синхронизируем с модальным окном
+    document.getElementById('final_delivery_method').value = deliveryMethod;
+    updateOrderModal();
+}
+
+// Ждем полной загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчики для выбора способа доставки
+    var deliveryRadios = document.querySelectorAll('input[name="delivery_type"]');
+    deliveryRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var deliverySection = document.getElementById('delivery_section');
+            if (this.value === 'delivery') {
+                deliverySection.style.display = 'block';
+                
+                // Принудительно рассчитываем доставку при переключении на доставку
+                var updateBtn = document.getElementById('update_delivery');
+                if (updateBtn) {
+                    updateBtn.click();
+                }
+            } else {
+                deliverySection.style.display = 'none';
+                currentDeliveryPrice = 0;
+            }
+            
+            // Обновляем итоговую стоимость
+            updateTotalPrice();
+            
+            // Обновляем модальное окно
+            updateOrderModal();
+        });
+    });
+    
+    // Обработчик для города доставки
+    var deliveryCitySelect = document.getElementById('delivery_city');
+    if (deliveryCitySelect) {
+        deliveryCitySelect.addEventListener('change', function() {
+            var distanceGroup = document.getElementById('distance_group');
+            var distanceInput = document.getElementById('delivery_distance');
+            
+            if (this.value === 'tula') {
+                distanceGroup.style.display = 'none';
+                if (distanceInput) {
+                    distanceInput.value = 0;
+                }
+            } else {
+                distanceGroup.style.display = 'block';
+            }
+            updateOrderModal();
+        });
+    }
+    
+    // Обработчик изменения расстояния
+    var distanceInput = document.getElementById('delivery_distance');
+    if (distanceInput) {
+        distanceInput.addEventListener('input', function() {
+            updateOrderModal();
+        });
+    }
+    
+    // Обработчик для кнопки расчета доставки
+    var updateDeliveryBtn = document.getElementById('update_delivery');
+    if (updateDeliveryBtn) {
+        updateDeliveryBtn.addEventListener('click', function() {
+            var citySelect = document.getElementById('delivery_city');
+            var distanceInput = document.getElementById('delivery_distance');
+            
+            if (citySelect && distanceInput) {
+                var city = citySelect.value;
+                var distance = distanceInput.value;
+                
+                // Создаем FormData для отправки
+                var formData = new FormData();
+                formData.append('city', city);
+                formData.append('distance', distance);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                
+                // Отправляем запрос
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '{% url "menu:update_delivery_info" %}', true);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data.success) {
+                            currentDeliveryPrice = parseFloat(data.delivery_price);
+                            document.getElementById('delivery_price').textContent = currentDeliveryPrice;
+                            updateTotalPrice();
+                        }
+                    }
+                };
+                
+                xhr.send(formData);
+            }
+        });
+    }
+    
+    // Закрытие модального окна при клике вне его
+    window.onclick = function(event) {
+        var modal = document.getElementById('orderModal');
+        if (event.target === modal) {
+            closeOrderModal();
+        }
+    };
+
+    // В обработчике кнопки "Оформить заказ"
+    document.querySelectorAll('.checkout-button, .checkout-button[onclick*="openOrderModal"]').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            if (this.classList.contains('checkout-button') && !this.href) {
+                e.preventDefault();
+                
+                // Проверяем, выбран ли способ доставки
+                var deliveryMethod = getSelectedDeliveryMethod();
+                
+                if (deliveryMethod === 'delivery') {
+                    // Если выбран способ доставки, но не рассчитана стоимость
+                    if (currentDeliveryPrice === 0) {
+                        var updateBtn = document.getElementById('update_delivery');
+                        if (updateBtn) {
+                            updateBtn.click();
+                        }
+                    }
+                }
+                
+                openOrderModal();
+            }
+        });
+    });
+
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        // Убедимся, что все поля доставки заполнены корректно
+        var deliveryMethod = document.getElementById('final_delivery_method').value;
+        
+        if (deliveryMethod === 'delivery') {
+            var deliveryCity = document.getElementById('final_delivery_city').value;
+            var deliveryPrice = parseFloat(document.getElementById('final_delivery_price').value);
+            
+            if (!deliveryCity || deliveryCity.trim() === '') {
+                alert('Пожалуйста, выберите город доставки');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (isNaN(deliveryPrice) || deliveryPrice <= 0) {
+                alert('Пожалуйста, рассчитайте стоимость доставки');
+                e.preventDefault();
+                return false;
+            }
+        }
+        
+        // Остальная валидация...
+        if (!validateOrderForm()) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+
+// Функция валидации телефона
+function validatePhone(phone) {
+    // Удаляем все нецифровые символы
+    var cleaned = phone.replace(/\D/g, '');
+    
+    // Проверяем длину
+    if (cleaned.length < 10 || cleaned.length > 11) {
+        return false;
+    }
+    
+    // Проверяем код страны/оператора
+    if (cleaned.length === 11) {
+        if (cleaned[0] !== '7' && cleaned[0] !== '8') {
+            return false;
+        }
+        // Убираем первый символ для проверки кода оператора
+        cleaned = cleaned.substring(1);
+    }
+    
+    // Теперь должно быть 10 цифр
+    if (cleaned.length !== 10) {
+        return false;
+    }
+    
+    // Проверяем код оператора (первые 3 цифры)
+    var operatorCode = cleaned.substring(0, 3);
+    var validCodes = ['900','901','902','903','904','905','906','907','908','909',
+                      '910','911','912','913','914','915','916','917','918','919',
+                      '920','921','922','923','924','925','926','927','928','929',
+                      '930','931','932','933','934','935','936','937','938','939',
+                      '940','941','942','943','944','945','946','947','948','949',
+                      '950','951','952','953','954','955','956','957','958','959',
+                      '960','961','962','963','964','965','966','967','968','969',
+                      '970','971','972','973','974','975','976','977','978','979',
+                      '980','981','982','983','984','985','986','987','988','989',
+                      '990','991','992','993','994','995','996','997','998','999'];
+    
+    return validCodes.includes(operatorCode);
+}
+
+// Функция форматирования телефона
+function formatPhoneInput(input, event) {
+    // Получаем текущее значение без маски
+    let value = input.value.replace(/\D/g, '');
+    
+    // Определяем, какая клавиша была нажата
+    const key = event.key;
+    
+    // Если нажата Backspace или Delete, разрешаем удаление
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+        return; // Не мешаем стандартному поведению удаления
+    }
+    
+    // Ограничиваем максимальную длину (11 цифр: +7 + 10 цифр)
+    if (value.length > 11) {
+        event.preventDefault();
+        return;
+    }
+    
+    // Форматируем только после ввода
+    setTimeout(() => {
+        value = input.value.replace(/\D/g, '');
+        
+        if (value.length > 0) {
+            let formatted = '';
+            
+            if (value.length <= 1) {
+                formatted = '+7';
+            } else if (value.length <= 4) {
+                formatted = '+7 (' + value.substring(1, 4);
+            } else if (value.length <= 7) {
+                formatted = '+7 (' + value.substring(1, 4) + ') ' + value.substring(4, 7);
+            } else if (value.length <= 9) {
+                formatted = '+7 (' + value.substring(1, 4) + ') ' + value.substring(4, 7) + '-' + value.substring(7, 9);
+            } else {
+                formatted = '+7 (' + value.substring(1, 4) + ') ' + value.substring(4, 7) + '-' + value.substring(7, 9) + '-' + value.substring(9, 11);
+            }
+            
+            input.value = formatted;
+            
+            // Устанавливаем курсор в конец
+            input.setSelectionRange(formatted.length, formatted.length);
+        }
+    }, 0);
+}
+
+// Функция для обработки нажатия клавиш
+function handlePhoneKeydown(event) {
+    const input = event.target;
+    const key = event.key;
+    
+    // Разрешаем только цифры, Backspace, Delete, Tab и стрелки
+    if (!/[\d]|Backspace|Delete|Tab|ArrowLeft|ArrowRight|ArrowUp|ArrowDown/.test(key)) {
+        event.preventDefault();
+        return;
+    }
+    
+    // Ограничиваем максимальную длину
+    const currentValue = input.value.replace(/\D/g, '');
+    if (currentValue.length >= 11 && /\d/.test(key)) {
+        event.preventDefault();
+        return;
+    }
+}
+
+// Функция для обработки вставки
+function handlePhonePaste(event) {
+    event.preventDefault();
+    const pastedData = (event.clipboardData || window.clipboardData).getData('text');
+    const numbersOnly = pastedData.replace(/\D/g, '');
+    
+    if (numbersOnly.length > 11) {
+        return; // Не вставляем слишком длинные номера
+    }
+    
+    const input = event.target;
+    const currentValue = input.value.replace(/\D/g, '');
+    
+    // Учитываем, что +7 уже есть в маске
+    const newValue = currentValue + numbersOnly;
+    const limitedValue = newValue.substring(0, 11);
+    
+    // Форматируем новое значение
+    if (limitedValue.length > 0) {
+        let formatted = '';
+        
+        if (limitedValue.length <= 1) {
+            formatted = '+7';
+        } else if (limitedValue.length <= 4) {
+            formatted = '+7 (' + limitedValue.substring(1, 4);
+        } else if (limitedValue.length <= 7) {
+            formatted = '+7 (' + limitedValue.substring(1, 4) + ') ' + limitedValue.substring(4, 7);
+        } else if (limitedValue.length <= 9) {
+            formatted = '+7 (' + limitedValue.substring(1, 4) + ') ' + limitedValue.substring(4, 7) + '-' + limitedValue.substring(7, 9);
+        } else {
+            formatted = '+7 (' + limitedValue.substring(1, 4) + ') ' + limitedValue.substring(4, 7) + '-' + limitedValue.substring(7, 9) + '-' + limitedValue.substring(9, 11);
+        }
+        
+        input.value = formatted;
+        
+        // Устанавливаем курсор в конец
+        input.setSelectionRange(formatted.length, formatted.length);
+    }
+}
+
+// Функция проверки формы перед отправкой
+function validateOrderForm() {
+    var phoneInput = document.getElementById('customer_phone');
+    var nameInput = document.getElementById('customer_name');
+    var addressInput = document.getElementById('customer_address');
+    var deliveryMethod = getSelectedDeliveryMethod();
+    
+    // Проверка имени
+    if (!nameInput.value.trim()) {
+        alert('Пожалуйста, укажите ваше имя');
+        nameInput.focus();
+        return false;
+    }
+    
+    if (nameInput.value.trim().length < 2) {
+        alert('Имя должно содержать минимум 2 символа');
+        nameInput.focus();
+        return false;
+    }
+    
+    // Проверка телефона
+    if (!phoneInput.value.trim()) {
+        alert('Пожалуйста, укажите номер телефона');
+        phoneInput.focus();
+        return false;
+    }
+    
+    if (!validatePhone(phoneInput.value)) {
+        alert('Пожалуйста, введите корректный номер телефона.\nФорматы: +7XXXXXXXXXX, 8XXXXXXXXXX');
+        phoneInput.focus();
+        return false;
+    }
+    
+    // Проверка адреса для доставки
+    if (deliveryMethod === 'delivery') {
+        if (!addressInput.value.trim()) {
+            alert('Пожалуйста, укажите адрес доставки');
+            addressInput.focus();
+            return false;
+        }
+        
+        if (addressInput.value.trim().length < 10) {
+            alert('Адрес доставки должен содержать минимум 10 символов');
+            addressInput.focus();
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    var phoneInput = document.getElementById('customer_phone');
+    if (phoneInput) {
+        // Устанавливаем начальное значение (пустая маска)
+        phoneInput.value = '+7';
+        
+        // Обработчики событий
+        phoneInput.addEventListener('keydown', handlePhoneKeydown);
+        phoneInput.addEventListener('input', function(event) {
+            formatPhoneInput(this, event);
+        });
+        phoneInput.addEventListener('paste', handlePhonePaste);
+        
+        // При фокусе - ставим курсор после +7
+        phoneInput.addEventListener('focus', function() {
+            if (this.value === '+7') {
+                this.setSelectionRange(3, 3);
+            }
+        });
+        
+        // Проверяем валидность при потере фокуса
+        phoneInput.addEventListener('blur', function() {
+            const value = this.value.replace(/\D/g, '');
+            
+            if (value.length < 11) {
+                this.style.borderColor = '#ef476f';
+                let hint = document.getElementById('phone_hint');
+                if (!hint) {
+                    hint = document.createElement('div');
+                    hint.id = 'phone_hint';
+                    hint.style.color = '#ef476f';
+                    hint.style.fontSize = '12px';
+                    hint.style.marginTop = '5px';
+                    hint.innerHTML = 'Номер должен содержать 10 цифр после +7';
+                    this.parentNode.appendChild(hint);
+                }
+            } else {
+                this.style.borderColor = '#06d6a0';
+                const hint = document.getElementById('phone_hint');
+                if (hint) {
+                    hint.remove();
+                }
+            }
+        });
+    }
+
+    // Обновите функцию validatePhone для проверки полного номера
+    function validatePhone(phone) {
+        const cleaned = phone.replace(/\D/g, '');
+        return cleaned.length === 11 && cleaned.startsWith('7');
+    }
+    
+    // Обновите функцию validateOrderForm
+    function validateOrderForm() {
+        var phoneInput = document.getElementById('customer_phone');
+        var nameInput = document.getElementById('customer_name');
+        var addressInput = document.getElementById('customer_address');
+        var deliveryMethod = getSelectedDeliveryMethod();
+
+    // Проверка телефона
+        if (!phoneInput.value.trim()) {
+            alert('Пожалуйста, укажите номер телефона');
+            phoneInput.focus();
+            return false;
+        }
+
+        const phoneValue = phoneInput.value.replace(/\D/g, '');
+        if (phoneValue.length !== 11 || !phoneValue.startsWith('7')) {
+            alert('Пожалуйста, введите полный номер телефона.\nФормат: +7 (XXX) XXX-XX-XX');
+            phoneInput.focus();
+            phoneInput.setSelectionRange(0, phoneInput.value.length);
+            return false;
+        }
+
+        return true;
+    }
+    
+    // Добавляем обработчик отправки формы
+    var orderForm = document.querySelector('#orderModal form');
+    if (orderForm) {
+        orderForm.addEventListener('submit', function(e) {
+            if (!validateOrderForm()) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+    
+    // Обработчик изменения способа доставки
+    var deliveryRadios = document.querySelectorAll('input[name="delivery_type"]');
+    deliveryRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var addressField = document.getElementById('address_field_group');
+            if (this.value === 'delivery') {
+                addressField.style.display = 'block';
+                document.getElementById('customer_address').setAttribute('required', 'required');
+            } else {
+                addressField.style.display = 'none';
+                document.getElementById('customer_address').removeAttribute('required');
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.delivery-section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.delivery-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    align-items: end;
+}
+
+.form-help {
+    margin-top: -10px;
+}
+
+.form-help small {
+    color: #6c757d;
+    font-size: 0.85em;
+}
+
+.update-delivery-button {
+    background: #4ecdc4;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    height: fit-content;
+    width: fit-content;
+}
+
+.delivery-preview {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #4ecdc4;
+}
+
+.delivery-choice {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin: 20px 0;
+}
+
+.delivery-options {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.delivery-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    border: 2px solid #ffd166;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.delivery-option:hover {
+    background: #fff9e6;
+}
+
+.delivery-option input[type="radio"] {
+    margin: 0;
+}
+
+/* Стили для информации о доставке в модальном окне */
+.delivery-info-summary {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #4ecdc4;
+}
+
+.delivery-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.delivery-detail {
+    padding: 8px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .delivery-options {
+        flex-direction: column;
+    }
+    
+    .delivery-details-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .update-delivery-button {
+        width: 100%;
+    }
+}
+
+input:invalid, textarea:invalid {
+    border-color: #ef476f;
+}
+
+input:valid, textarea:valid {
+    border-color: #06d6a0;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+.required-label::after {
+    content: " *";
+    color: #ef476f;
+}
+
+/* Адаптация модального окна для мобильных */
+@media (max-width: 768px) {
+    #orderModal .modal-content {
+        width: 95%;
+        margin: 5% auto;
+        padding: 20px;
+    }
+}
+
+/* Обратная связь */
+#customer_phone {
+    padding-left: 15px;
+    letter-spacing: 1px;
+}
+
+#customer_phone::placeholder {
+    color: #999;
+    opacity: 0.7;
+}
+
+#customer_phone:focus {
+    border-color: #4ecdc4;
+    box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
+}
+
+.phone-input-container {
+    position: relative;
+}
+
+.phone-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    pointer-events: none;
+}
+
+.phone-input-with-prefix {
+    padding-left: 35px;
+}
+</style>
+{% endblock %}

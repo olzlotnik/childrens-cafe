@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="login-page">
+    <h1>Вход в систему</h1>
+    
+    <form method="post" class="login-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Email адрес:</label>
+            {{ form.username }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.password.id_for_label }}">Пароль:</label>
+            {{ form.password }}
+        </div>
+        
+        <button type="submit" class="login-button">Войти</button>
+    </form>
+    
+    <div class="login-links" style="text-align: center; margin-top: 20px;">
+        <a href="{% url 'homepage:password_reset' %}" style="color: #4ecdc4; font-weight: bold;">Забыли пароль?</a>
+        <p>Нет аккаунта? <a href="{% url 'homepage:register' %}" style="color: #4ecdc4; font-weight: bold;">Зарегистрируйтесь</a></p>
+    </div>
+    
+    <div class="login-info">
+        <p>После входа вы сможете:</p>
+        <ul>
+            <li>Оформить заказ</li>
+            <li>Оценить наше кафе</li>
+            <li>Оставлять отзывы</li>
+            <li>Просматривать историю заказов</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

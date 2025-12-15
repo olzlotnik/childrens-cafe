@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Отзывы - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="reviews-page">
+    <h1>Отзывы о нашем кафе</h1>
+    
+    {% if avg_ratings %}
+    <div class="average-ratings">
+        <h3>Средние оценки</h3>
+        <div class="ratings-grid">
+            <div class="rating-category">
+                <span>Качество еды:</span>
+                <span class="rating-value">{{ avg_ratings.food_quality|floatformat:1 }}/5</span>
+            </div>
+            <div class="rating-category">
+                <span>Обслуживание:</span>
+                <span class="rating-value">{{ avg_ratings.service_quality|floatformat:1 }}/5</span>
+            </div>
+            <div class="rating-category">
+                <span>Атмосфера:</span>
+                <span class="rating-value">{{ avg_ratings.atmosphere|floatformat:1 }}/5</span>
+            </div>
+            <div class="rating-category">
+                <span>Чистота:</span>
+                <span class="rating-value">{{ avg_ratings.cleanliness|floatformat:1 }}/5</span>
+            </div>
+            <div class="rating-category overall">
+                <span>Общая оценка:</span>
+                <span class="rating-value">{{ avg_ratings.overall|floatformat:1 }}/5</span>
+            </div>
+        </div>
+        <p class="total-reviews">Всего отзывов: {{ total_reviews }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="reviews-list">
+        {% for rating in ratings %}
+        <div class="review-item">
+            <div class="review-header">
+                <div class="review-user">
+                    <strong>{{ rating.user.username }}</strong>
+                    <span class="review-date">{{ rating.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="review-ratings">
+                    <span>Еда: {{ rating.food_quality }}/5</span>
+                    <span>Сервис: {{ rating.service_quality }}/5</span>
+                    <span>Атмосфера: {{ rating.atmosphere }}/5</span>
+                    <span>Чистота: {{ rating.cleanliness }}/5</span>
+                    <span><strong>Общее: {{ rating.overall_rating|floatformat:1 }}/5</strong></span>
+                </div>
+            </div>
+            {% if rating.comment %}
+            <div class="review-comment">
+                <p>{{ rating.comment }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="no-reviews">
+            <p>Пока нет отзывов. Будьте первым!</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="reviews-actions">
+        {% if user.is_authenticated %}
+        <a href="{% url 'homepage:rate_cafe' %}" class="add-review-button">Оставить отзыв</a>
+        {% else %}
+        <p><a href="{% url 'homepage:login' %}">Авторизуйтесь</a>, чтобы оставить отзыв</p>
+        {% endif %}
+        <a href="{% url 'homepage:home' %}" class="back-home-button">На главную</a>
+    </div>
+</div>
+
+<style>
+.review-user {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.review-ratings {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.review-ratings span {
+    font-size: 14px;
+    color: #555;
+    padding: 3px 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

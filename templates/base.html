@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Весёлое детское кафе "Радуга"{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{% static 'img/favicon.ico' %}" type="image/x-icon">
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    
+    <!-- Основные стили -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+    <!-- Блок для дополнительных CSS -->
+    {% block extra_css %}{% endblock %}
+
+    {% csrf_token %}
+</head>
+<body>
+    {% include "includes/header.html" %}
+
+    <div class="container">
+        <div class="main-content">
+            {% block content %}
+            <div id="home" class="page active">
+                <h1>Добро пожаловать в детское кафе "Радуга"!</h1>
+                <div class="hero">
+                    <div class="hero-text">Место, где сбываются детские мечты!</div>
+                </div>
+                <p class="welcome-text">Мы создали особенное место, где дети могут весело провести время, а родители - отдохнуть и насладиться вкусной едой.</p>
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+
+    {% include "includes/footer.html" %}
+
+    <button class="back-to-top" onclick="scrollToTop()" title="Вернуться наверх">↑</button>
+
+    <!-- jQuery -->
+    <script src="{% static 'js/jquery-3.6.0.min.js' %}"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    
+    <!-- Основные скрипты -->
+    <script src="{% static 'js/script.js' %}"></script>
+
+    <!-- Блок для дополнительных JS -->
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,647 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<h1>Добро пожаловать в детское кафе "Радуга"!</h1>
+<div class="hero">
+    <div class="hero-text">Место, где сбываются детские мечты!</div>
+</div>
+<p class="welcome-text">Мы создали особенное место, где дети могут весело провести время, а родители - отдохнуть и насладиться вкусной едой.</p>
+
+<div class="rating-section">
+    <h2>Оцените наше кафе</h2>
+    <p>Поделитесь вашим мнением о посещении нашего кафе</p>
+    <a href="{% url 'homepage:rate_cafe' %}" class="rate-button">Оставить оценку</a>
+    <a href="{% url 'homepage:reviews' %}" class="reviews-link">Посмотреть отзывы</a>
+</div>
+
+<div class="cards">
+    <div class="card">
+        <img src="https://avatars.mds.yandex.net/i?id=90cc0d5dfadf0ba957eeafd49ee6024a_l-8497314-images-thumbs&n=13" alt="Вкусная еда" class="card-img">
+        <div class="card-content">
+            <h3>Вкусная еда</h3>
+            <p>Специальное детское меню, разработанное с учетом потребностей растущего организма.</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <img src="https://cdn.culture.ru/images/8f811004-c343-50b0-833f-ee4593088cad" alt="Анимация" class="card-img">
+        <div class="card-content">
+            <h3>Веселые аниматоры</h3>
+            <p>Наши профессиональные аниматоры не дадут скучать ни одному ребенку!</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <img src="https://otadoya.ru/upload/iblock/689/rwgpboqahdtt999bgbax9kd2eis0stl3.jpg" alt="Игровая зона" class="card-img">
+        <div class="card-content">
+            <h3>Безопасная игровая зона</h3>
+            <p>Просторная игровая комната с безопасными конструкциями и игрушками.</p>
+        </div>
+    </div>
+</div>
+
+<div class="booking-button-container">
+    <button class="booking-button" onclick="openBookingForm()">Забронировать мероприятие</button>
+</div>
+
+<div id="bookingModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeBookingForm()">&times;</span>
+        <h2>Бронирование мероприятия</h2>
+        
+        {% if not user.is_authenticated %}
+        <div class="auth-alert">
+            <p>Для бронирования мероприятия необходимо <a href="{% url 'homepage:login' %}" style="color: #4ecdc4;">войти</a> в систему.</p>
+            <p>Если у вас нет аккаунта, <a href="{% url 'homepage:register' %}" style="color: #4ecdc4;">зарегистрируйтесь</a>.</p>
+        </div>
+        {% else %}
+        <form id="bookingForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="eventDate">Дата мероприятия:</label>
+                <input type="date" id="eventDate" name="eventDate" required 
+                       min="{{ today|date:'Y-m-d' }}" 
+                       max="{{ max_date|date:'Y-m-d' }}">
+                <div class="error-message" id="dateError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="eventTime">Время начала:</label>
+                <input type="time" id="eventTime" name="eventTime" required 
+                       min="10:00" max="20:00" step="1800">
+                <div class="error-message" id="timeError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="eventDuration">Продолжительность (часы):</label>
+                <input type="number" id="eventDuration" name="eventDuration" 
+                       min="1" max="8" value="2" required>
+                <small>Минимум 1 час, максимум 8 часов</small>
+            </div>
+            
+            <div class="time-availability">
+                <button type="button" onclick="checkBookingAvailability()" class="check-button">
+                    Проверить доступность времени
+                </button>
+                <div id="availabilityStatus"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="guestsCount">Количество гостей:</label>
+                <input type="number" id="guestsCount" name="guestsCount" 
+                       min="1" max="50" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="eventType">Тип мероприятия:</label>
+                <select id="eventType" name="eventType" required>
+                    <option value="">Выберите тип мероприятия</option>
+                    <option value="birthday">День рождения</option>
+                    <option value="holiday">Праздник</option>
+                    <option value="graduation">Выпускной</option>
+                    <option value="other">Другое</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Дополнительные услуги:</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="services" value="animator" onchange="calculateBookingPrice()"> Аниматор (+1000 руб)</label>
+                    <label><input type="checkbox" name="services" value="cake" onchange="calculateBookingPrice()"> Торт (+1500 руб)</label>
+                    <label><input type="checkbox" name="services" value="decorations" onchange="calculateBookingPrice()"> Украшение зала (+2000 руб)</label>
+                    <label><input type="checkbox" name="services" value="photographer" onchange="calculateBookingPrice()"> Фотограф (+2500 руб)</label>
+                </div>
+            </div>
+            
+            <div class="budget-preview">
+                <h3>Предварительный расчет:</h3>
+                <div class="budget-details">
+                    <p>Базовая стоимость: <span id="baseCost">5000</span> руб</p>
+                    <p>Дополнительные услуги: <span id="servicesCost">0</span> руб</p>
+                    <p class="total">Итого: <span id="totalCost">5000</span> руб</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Контактный телефон:</label>
+                <input type="tel" id="phone" name="phone" 
+                       placeholder="+7 (XXX) XXX-XX-XX" 
+                       required>
+                <div class="error-message" id="phoneError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="comments">Дополнительные пожелания:</label>
+                <textarea id="comments" name="comments" rows="4"></textarea>
+            </div>
+            
+            <button type="submit" class="submit-button" id="submitButton">Отправить заявку</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Модальное окно успешного бронирования -->
+<div id="successModal" class="modal" style="display: none;">
+    <div class="modal-content success-modal-content">
+        <span class="close" onclick="closeSuccessModal()">&times;</span>
+        <div class="success-icon">🎉</div>
+        <h3 id="successTitle">Бронирование успешно создано!</h3>
+        <p id="successMessage">Спасибо за ваше бронирование! Мы свяжемся с вами для подтверждения.</p>
+        <div class="success-buttons">
+            <!-- Вариант с data-атрибутом - самый надежный -->
+            <button class="success-button" 
+                    data-profile-url="{% url 'homepage:profile' %}"
+                    onclick="window.location.href=this.getAttribute('data-profile-url')">
+                Мои бронирования
+            </button>
+            
+            <button class="success-button secondary" onclick="closeSuccessModal()">
+                Закрыть
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Стили для модального окна бронирования */
+.time-availability {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.check-button {
+    background: #4ecdc4;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.check-button:hover {
+    background: #3db8af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+}
+
+.check-button:active {
+    transform: translateY(0);
+}
+
+#availabilityStatus {
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-weight: 600;
+    text-align: center;
+    display: none;
+}
+
+#availabilityStatus.available {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    display: block;
+}
+
+#availabilityStatus.unavailable {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    display: block;
+}
+
+#availabilityStatus.checking {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+    display: block;
+}
+
+/* Стили для модального окна успеха */
+.success-modal-content {
+    text-align: center;
+    max-width: 500px;
+    border: 4px solid #4ecdc4;
+}
+
+.success-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: bounce 0.6s ease-out;
+}
+
+@keyframes bounce {
+    0% { transform: scale(0.3); }
+    50% { transform: scale(1.1); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+.success-modal-content h3 {
+    color: #ff6b6b;
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.success-modal-content p {
+    color: #555;
+    font-size: 18px;
+    line-height: 1.5;
+    margin-bottom: 25px;
+}
+
+.success-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.success-button {
+    background: #4ecdc4;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 180px;
+}
+
+.success-button:hover {
+    background: #3db8af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+}
+
+.success-button.secondary {
+    background: #ffd166;
+    color: #333;
+}
+
+.success-button.secondary:hover {
+    background: #ffc745;
+    box-shadow: 0 4px 12px rgba(255, 209, 102, 0.3);
+}
+
+.auth-alert {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.auth-alert p {
+    margin: 10px 0;
+    color: #856404;
+}
+
+.auth-alert a {
+    color: #4ecdc4;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.auth-alert a:hover {
+    text-decoration: underline;
+}
+</style>
+
+<script>
+// Константы для расчета стоимости
+const BOOKING_PRICES = {
+    base_hourly: 2500, // руб/час
+    services: {
+        animator: 1000,
+        cake: 1500,
+        decorations: 2000,
+        photographer: 2500
+    }
+};
+
+// Функция расчета стоимости бронирования
+function calculateBookingPrice() {
+    const duration = parseInt(document.getElementById('eventDuration').value) || 2;
+    const baseCost = BOOKING_PRICES.base_hourly * duration;
+    
+    let servicesCost = 0;
+    document.querySelectorAll('input[name="services"]:checked').forEach(checkbox => {
+        servicesCost += BOOKING_PRICES.services[checkbox.value] || 0;
+    });
+    
+    document.getElementById('baseCost').textContent = baseCost;
+    document.getElementById('servicesCost').textContent = servicesCost;
+    document.getElementById('totalCost').textContent = baseCost + servicesCost;
+}
+
+// Функция проверки доступности времени
+async function checkBookingAvailability() {
+    const eventDate = document.getElementById('eventDate').value;
+    const eventTime = document.getElementById('eventTime').value;
+    const eventDuration = document.getElementById('eventDuration').value;
+    
+    if (!eventDate || !eventTime) {
+        showAvailabilityStatus('Пожалуйста, выберите дату и время', false);
+        return;
+    }
+    
+    const statusDiv = document.getElementById('availabilityStatus');
+    statusDiv.className = 'checking';
+    statusDiv.textContent = '⌛ Проверяем доступность...';
+    statusDiv.style.display = 'block';
+    
+    try {
+        const response = await fetch('{% url "homepage:check_availability" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                eventDate: eventDate,
+                eventTime: eventTime,
+                eventDuration: eventDuration
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.available) {
+            showAvailabilityStatus('✅ ' + (data.message || 'Время доступно!'), true);
+        } else {
+            showAvailabilityStatus('❌ ' + (data.message || 'Время занято'), false);
+        }
+    } catch (error) {
+        console.error('Ошибка при проверке доступности:', error);
+        showAvailabilityStatus('⚠️ Ошибка при проверке. Попробуйте позже.', false);
+    }
+}
+
+// Функция отображения статуса доступности
+function showAvailabilityStatus(message, isAvailable) {
+    const statusDiv = document.getElementById('availabilityStatus');
+    statusDiv.textContent = message;
+    statusDiv.className = isAvailable ? 'available' : 'unavailable';
+}
+
+// Валидация телефона
+function validatePhone(phone) {
+    // Убираем все нецифровые символы
+    const cleanPhone = phone.replace(/\D/g, '');
+    
+    // Проверяем российский номер телефона
+    if (cleanPhone.length === 11 && (cleanPhone.startsWith('7') || cleanPhone.startsWith('8'))) {
+        return true;
+    }
+    
+    // Проверяем международный формат
+    if (cleanPhone.length >= 10 && cleanPhone.length <= 15) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Форматирование телефона
+function formatPhone(input) {
+    let value = input.value.replace(/\D/g, '');
+    
+    if (value.length > 0) {
+        // Российский номер
+        if (value.startsWith('7') || value.startsWith('8')) {
+            if (value.length > 1) {
+                let formatted = '+7 ';
+                
+                if (value.length > 1) formatted += '(' + value.substring(1, 4);
+                if (value.length >= 4) formatted += ') ' + value.substring(4, 7);
+                if (value.length >= 7) formatted += '-' + value.substring(7, 9);
+                if (value.length >= 9) formatted += '-' + value.substring(9, 11);
+                
+                input.value = formatted;
+            }
+        } else {
+            // Международный номер
+            input.value = '+' + value.substring(0, 15);
+        }
+    }
+}
+
+// Функция открытия модального окна успеха
+function showSuccessModal(title, message) {
+    document.getElementById('successTitle').textContent = title;
+    document.getElementById('successMessage').textContent = message;
+    document.getElementById('successModal').style.display = 'block';
+}
+
+// Функция закрытия модального окна успеха
+function closeSuccessModal() {
+    document.getElementById('successModal').style.display = 'none';
+}
+
+// Функция получения CSRF токена
+function getCSRFToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    return csrfToken ? csrfToken.value : '';
+}
+
+// Основная функция отправки формы бронирования
+async function submitBookingForm(event) {
+    event.preventDefault();
+    
+    // Проверяем авторизацию
+    const isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+    if (!isAuthenticated) {
+        alert('Для бронирования необходимо войти в систему');
+        window.location.href = '{% url "homepage:login" %}';
+        return;
+    }
+    
+    // Очищаем предыдущие ошибки
+    clearErrors();
+    
+    // Валидация телефона
+    const phone = document.getElementById('phone').value;
+    if (!validatePhone(phone)) {
+        showError('phone', 'Пожалуйста, введите корректный номер телефона');
+        return;
+    }
+    
+    // Проверяем заполнение обязательных полей
+    const requiredFields = ['eventDate', 'eventTime', 'guestsCount', 'eventType'];
+    let hasErrors = false;
+    
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field.value) {
+            showError(fieldId, 'Это поле обязательно для заполнения');
+            hasErrors = true;
+        }
+    });
+    
+    if (hasErrors) return;
+    
+    // Блокируем кнопку отправки
+    const submitButton = document.getElementById('submitButton');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Отправка...';
+    
+    try {
+        // Собираем данные формы
+        const formData = {
+            eventDate: document.getElementById('eventDate').value,
+            eventTime: document.getElementById('eventTime').value,
+            eventDuration: parseInt(document.getElementById('eventDuration').value) || 2,
+            guestsCount: parseInt(document.getElementById('guestsCount').value),
+            eventType: document.getElementById('eventType').value,
+            phone: document.getElementById('phone').value,
+            comments: document.getElementById('comments').value,
+            services: Array.from(document.querySelectorAll('input[name="services"]:checked'))
+                .map(checkbox => checkbox.value)
+        };
+        
+        // Отправляем запрос на сервер
+        const response = await fetch('{% url "homepage:create_booking" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Показываем успешное сообщение
+            showSuccessModal('Бронирование создано!', data.message);
+            closeBookingForm();
+            
+            // Очищаем форму
+            document.getElementById('bookingForm').reset();
+            calculateBookingPrice();
+        } else {
+            // Показываем ошибки валидации
+            if (data.errors) {
+                for (const [field, errors] of Object.entries(data.errors)) {
+                    const firstError = errors[0];
+                    showError(field, firstError.message);
+                }
+            } else {
+                alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при отправке формы:', error);
+        alert('Произошла ошибка при отправке формы. Пожалуйста, попробуйте позже.');
+    } finally {
+        // Разблокируем кнопку
+        submitButton.disabled = false;
+        submitButton.textContent = 'Отправить заявку';
+    }
+}
+
+// Вспомогательные функции
+function showError(fieldId, message) {
+    const errorElement = document.getElementById(fieldId + 'Error');
+    const fieldElement = document.getElementById(fieldId);
+    
+    if (errorElement && fieldElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        fieldElement.style.borderColor = '#ff6b6b';
+    }
+}
+
+function clearErrors() {
+    const errorElements = document.querySelectorAll('.error-message');
+    const fields = document.querySelectorAll('#bookingForm input, #bookingForm select, #bookingForm textarea');
+    
+    errorElements.forEach(element => {
+        element.style.display = 'none';
+    });
+    
+    fields.forEach(field => {
+        field.style.borderColor = '#ffd166';
+    });
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // Настройка минимальной даты
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('eventDate');
+    if (dateInput) {
+        if (!dateInput.getAttribute('min')) {
+            dateInput.min = today;
+        }
+    }
+    
+    // Обработчики событий
+    const bookingForm = document.getElementById('bookingForm');
+    const phoneInput = document.getElementById('phone');
+    
+    if (bookingForm) {
+        bookingForm.addEventListener('submit', submitBookingForm);
+    }
+    
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            formatPhone(this);
+            const errorElement = document.getElementById('phoneError');
+            if (errorElement) {
+                errorElement.style.display = 'none';
+                this.style.borderColor = '#ffd166';
+            }
+        });
+    }
+    
+    // Обработчики для расчета стоимости
+    document.getElementById('eventDuration')?.addEventListener('change', calculateBookingPrice);
+    document.getElementById('eventDuration')?.addEventListener('input', calculateBookingPrice);
+    
+    // Инициализируем расчет стоимости
+    calculateBookingPrice();
+});
+
+// Функции для модального окна
+function openBookingForm() {
+    document.getElementById('bookingModal').style.display = 'block';
+    calculateBookingPrice();
+}
+
+function closeBookingForm() {
+    document.getElementById('bookingModal').style.display = 'none';
+    clearErrors();
+    document.getElementById('availabilityStatus').style.display = 'none';
+}
+
+// Закрытие модальных окон при клике вне их
+window.onclick = function(event) {
+    const bookingModal = document.getElementById('bookingModal');
+    const successModal = document.getElementById('successModal');
+    
+    if (event.target == bookingModal) {
+        closeBookingForm();
+    }
+    
+    if (event.target == successModal) {
+        closeSuccessModal();
+    }
+}
+</script>
+{% endblock %}

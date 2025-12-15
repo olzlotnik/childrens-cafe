@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ оформлен - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="order-success-page">
+    <div class="success-icon">🎉</div>
+    <h1>Заказ успешно оформлен!</h1>
+    
+    {% if order.id %}
+    <div class="order-number" style="text-align: center; margin: 20px 0;">
+        <h3 style="color: #4ecdc4;">Номер вашего заказа: #{{ order.id }}</h3>
+    </div>
+    {% endif %}
+    
+    <div class="order-details">
+        <h3>Детали заказа:</h3>
+        
+        {% if order_items %}
+        <div class="order-items">
+            {% for item in order_items %}
+            <div class="order-item">
+                <div class="item-info">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image }}" alt="{{ item.product.title }}" class="item-image">
+                    {% endif %}
+                    <div class="item-details">
+                        <span class="item-title">{{ item.product.title }}</span>
+                    </div>
+                </div>
+                <div class="item-price">
+                    <span>{{ item.quantity }} × {{ item.product.price|floatformat:2 }} руб.</span>
+                    <span class="item-total">{{ item.total|floatformat:2 }} руб.</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-items">Информация о товарах временно недоступна</p>
+        {% endif %}
+        
+        {% if order.delivery_method == 'delivery' %}
+        <div class="delivery-info">
+            <h4>Информация о доставке:</h4>
+            <p><strong>Стоимость доставки:</strong> {{ delivery_price|floatformat:2 }} руб.</p>
+            {% if order.delivery_city != 'tula' %}
+            <p><strong>Расстояние:</strong> {{ order.delivery_distance }} км</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="order-total">
+            {% if order_items %}
+            <strong>Товары: {{ total_price|floatformat:2 }} руб.</strong>
+            {% endif %}
+            {% if order.delivery_method == 'delivery' %}
+            <br><strong>Доставка: {{ delivery_price|floatformat:2 }} руб.</strong>
+            {% endif %}
+            <br><strong>Итого: {{ final_total|floatformat:2 }} руб.</strong>
+        </div>
+        
+        <div class="order-info">
+            <p><strong>Способ получения:</strong> 
+                {% if order.delivery_method == 'delivery' %}Доставка{% else %}Самовывоз{% endif %}
+            </p>
+            <p><strong>Способ оплаты:</strong> 
+                {% if order.payment_method == 'cash' %}Наличными
+                {% elif order.payment_method == 'card' %}Картой
+                {% else %}Онлайн оплата{% endif %}
+            </p>
+            {% if order.customer_name %}
+            <p><strong>Имя клиента:</strong> {{ order.customer_name }}</p>
+            {% endif %}
+            {% if order.customer_phone %}
+            <p><strong>Телефон:</strong> {{ order.customer_phone }}</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="success-actions">
+        <a href="{% url 'menu:menu_list' %}" class="success-btn btn-menu">Вернуться в меню</a>
+        <a href="{% url 'homepage:home' %}" class="success-btn btn-home">На главную</a>
+        <a href="{% url 'homepage:profile' %}" class="success-btn btn-profile">В личный кабинет</a>
+    </div>
+</div>
+
+<style>
+.order-success-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.success-icon {
+    font-size: 80px;
+    text-align: center;
+    margin: 20px 0;
+    animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-10px); }
+}
+
+.order-details {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 10px;
+    margin: 25px 0;
+}
+
+.order-items {
+    margin: 20px 0;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.order-item:last-child {
+    border-bottom: none;
+}
+
+.order-total {
+    background: #4ecdc4;
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    text-align: center;
+    font-size: 1.2em;
+}
+
+.order-total strong {
+    display: block;
+    margin: 8px 0;
+}
+
+.order-info {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #ffd166;
+}
+
+.order-info p {
+    margin: 10px 0;
+    padding: 8px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.order-info p:last-child {
+    border-bottom: none;
+}
+
+.no-items {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.success-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 30px;
+}
+
+.success-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 15px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    white-space: nowrap;
+    box-sizing: border-box;
+    min-width: 200px;
+    height: 54px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.btn-menu {
+    background: #4ecdc4;
+    color: white;
+    border-color: #4ecdc4;
+}
+
+.btn-menu:hover {
+    background: #3db8af;
+    border-color: #3db8af;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+}
+
+.btn-home {
+    background: #ffd166;
+    color: #333;
+    border-color: #ffd166;
+}
+
+.btn-home:hover {
+    background: #ffc745;
+    border-color: #ffc745;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 209, 102, 0.4);
+}
+
+.btn-profile {
+    background: #06d6a0;
+    color: white;
+    border-color: #06d6a0;
+}
+
+.btn-profile:hover {
+    background: #04c290;
+    border-color: #04c290;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(6, 214, 160, 0.4);
+}
+
+@media (max-width: 768px) {
+    .order-success-page {
+        padding: 15px;
+    }
+    
+    .success-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .success-btn {
+        width: 100%;
+        min-width: auto;
+    }
+}
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.item-image {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.item-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.item-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.item-total {
+    font-weight: bold;
+    color: #ef476f;
+    font-size: 1.1em;
+}
+</style>
+{% endblock %}

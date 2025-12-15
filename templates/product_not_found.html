@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Товар не найден - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-icon">😔</div>
+    <h1>Товар не найден</h1>
+    <p>{{ error_message|default:"Извините, но запрашиваемый товар не существует или был удален." }}</p>
+    
+    <div class="error-suggestions">
+        <h3>Что можно сделать?</h3>
+        <ul>
+            <li>Вернуться в <a href="{% url 'menu:menu_list' %}">меню</a> и выбрать другой товар</li>
+            <li>Воспользоваться <a href="{% url 'menu:menu_list' %}">поиском</a> для нахождения нужного товара</li>
+            <li>Посмотреть все наши <a href="{% url 'menu:menu_list' %}">предложения</a></li>
+        </ul>
+    </div>
+    
+    <div class="error-actions">
+        <a href="{% url 'menu:menu_list' %}" class="back-button">Вернуться в меню</a>
+        <a href="{% url 'homepage:home' %}" class="home-button">На главную</a>
+    </div>
+</div>
+{% endblock %}

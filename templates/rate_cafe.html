@@ -1,0 +1,560 @@
+{% extends "base.html" %}
+
+{% block title %}Оценить кафе - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="rate-page">
+    <h1>Оценить кафе</h1>
+    
+    {% if not user.is_authenticated %}
+    <div class="auth-required">
+        <div class="auth-message">
+            <h3>🔒 Требуется авторизация</h3>
+            <p>Для оценки кафе необходимо войти в свой аккаунт</p>
+            <div class="auth-actions">
+                <a href="{% url 'homepage:login' %}" class="login-button">Войти</a>
+                <a href="{% url 'homepage:register' %}" class="register-button">Зарегистрироваться</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <form method="post" class="rating-form">
+        {% csrf_token %}
+        
+        <!-- Основные критерии с звездами -->
+        <div class="rating-section">
+            <h3>Основные критерии</h3>
+            
+            <div class="rating-criterion">
+                <label>Качество еды</label>
+                <div class="stars" data-criterion="food_quality">
+                    {% for i in "54321" %}
+                    <input type="radio" id="food_quality_{{ i }}" name="food_quality" value="{{ i }}" required>
+                    <label for="food_quality_{{ i }}">★</label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="rating-criterion">
+                <label>Обслуживание</label>
+                <div class="stars" data-criterion="service_quality">
+                    {% for i in "54321" %}
+                    <input type="radio" id="service_quality_{{ i }}" name="service_quality" value="{{ i }}" required>
+                    <label for="service_quality_{{ i }}">★</label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="rating-criterion">
+                <label>Атмосфера</label>
+                <div class="stars" data-criterion="atmosphere">
+                    {% for i in "54321" %}
+                    <input type="radio" id="atmosphere_{{ i }}" name="atmosphere" value="{{ i }}" required>
+                    <label for="atmosphere_{{ i }}">★</label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="rating-criterion">
+                <label>Чистота</label>
+                <div class="stars" data-criterion="cleanliness">
+                    {% for i in "54321" %}
+                    <input type="radio" id="cleanliness_{{ i }}" name="cleanliness" value="{{ i }}" required>
+                    <label for="cleanliness_{{ i }}">★</label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Дополнительные критерии с выбором -->
+        <div class="rating-section">
+            <h3>Дополнительные оценки</h3>
+            
+            <div class="choice-criterion">
+                <label for="food_taste">Вкус еды</label>
+                <select id="food_taste" name="food_taste" class="form-select">
+                    <option value="">Выберите оценку</option>
+                    <option value="excellent">Очень вкусная</option>
+                    <option value="good">Вкусная</option>
+                    <option value="average">Нормальная</option>
+                    <option value="poor">Не очень</option>
+                    <option value="bad">Не вкусная</option>
+                </select>
+            </div>
+            
+            <div class="choice-criterion">
+                <label for="portion_size">Размер порций</label>
+                <select id="portion_size" name="portion_size" class="form-select">
+                    <option value="">Выберите оценку</option>
+                    <option value="large">Очень большие</option>
+                    <option value="normal">Нормальные</option>
+                    <option value="small">Маленькие</option>
+                </select>
+            </div>
+            
+            <div class="choice-criterion">
+                <label for="speed_service">Скорость обслуживания</label>
+                <select id="speed_service" name="speed_service" class="form-select">
+                    <option value="">Выберите оценку</option>
+                    <option value="fast">Очень быстро</option>
+                    <option value="normal">Нормально</option>
+                    <option value="slow">Медленно</option>
+                    <option value="very_slow">Очень медленно</option>
+                </select>
+            </div>
+            
+            <div class="choice-criterion">
+                <label for="staff_friendliness">Вежливость персонала</label>
+                <select id="staff_friendliness" name="staff_friendliness" class="form-select">
+                    <option value="">Выберите оценку</option>
+                    <option value="excellent">Очень вежливые</option>
+                    <option value="good">Вежливые</option>
+                    <option value="average">Нормальные</option>
+                    <option value="poor">Не очень вежливые</option>
+                </select>
+            </div>
+            
+            <div class="choice-criterion">
+                <label for="price_quality">Соотношение цены и качества</label>
+                <select id="price_quality" name="price_quality" class="form-select">
+                    <option value="">Выберите оценку</option>
+                    <option value="excellent">Отличное</option>
+                    <option value="good">Хорошее</option>
+                    <option value="fair">Удовлетворительное</option>
+                    <option value="poor">Плохое</option>
+                </select>
+            </div>
+            
+            <div class="choice-criterion">
+                <label for="child_friendly">Удобство для детей</label>
+                <select id="child_friendly" name="child_friendly" class="form-select">
+                    <option value="">Выберите оценку</option>
+                    <option value="excellent">Отлично</option>
+                    <option value="good">Хорошо</option>
+                    <option value="average">Нормально</option>
+                    <option value="poor">Плохо</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Комментарий -->
+        <div class="rating-section">
+            <h3>Ваш комментарий</h3>
+            <div class="comment-criterion">
+                <label for="comment">Поделитесь вашими впечатлениями</label>
+                <textarea id="comment" name="comment" class="form-textarea" 
+                          placeholder="Что вам особенно понравилось или не понравилось?..." 
+                          maxlength="500"></textarea>
+                <div class="char-counter"><span id="char-count">0</span>/500 символов</div>
+            </div>
+        </div>
+        
+        <!-- Рекомендация -->
+        <div class="rating-section">
+            <div class="recommendation-criterion">
+                <label>Порекомендуете ли вы наше кафе друзьям?</label>
+                <div class="recommendation-options">
+                    <label class="radio-option">
+                        <input type="radio" name="recommend" value="yes" required>
+                        <span class="radio-checkmark"></span>
+                        Да, обязательно
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="recommend" value="maybe">
+                        <span class="radio-checkmark"></span>
+                        Возможно
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="recommend" value="no">
+                        <span class="radio-checkmark"></span>
+                        Нет
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="submit-rating-button">Отправить оценку</button>
+    </form>
+    {% endif %}
+</div>
+
+<style>
+.rate-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Стили для сообщения о необходимости авторизации */
+.auth-required {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.auth-message {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    max-width: 400px;
+}
+
+.auth-message h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.auth-message p {
+    color: #6c757d;
+    margin-bottom: 25px;
+    font-size: 16px;
+}
+
+.auth-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.login-button, .register-button {
+    padding: 12px 25px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.login-button {
+    background: #4ecdc4;
+    color: white;
+}
+
+.login-button:hover {
+    background: #3db8af;
+    transform: translateY(-2px);
+}
+
+.register-button {
+    background: #ffd166;
+    color: #333;
+}
+
+.register-button:hover {
+    background: #ffc847;
+    transform: translateY(-2px);
+}
+
+/* Стили для формы оценки (только для авторизованных) */
+.rating-form {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.rating-section {
+    margin-bottom: 30px;
+    padding-bottom: 25px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.rating-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 20px;
+}
+
+.rating-section h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 20px;
+    border-left: 4px solid #4ecdc4;
+    padding-left: 15px;
+}
+
+/* Остальные стили остаются без изменений */
+.rating-criterion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.rating-criterion:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.rating-criterion label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 120px;
+}
+
+.stars {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+}
+
+.stars input {
+    display: none;
+}
+
+.stars label {
+    font-size: 30px;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    margin: 0 2px;
+    min-width: auto;
+}
+
+.stars label:hover,
+.stars label:hover ~ label,
+.stars input:checked ~ label {
+    color: #ffd166;
+}
+
+.stars input:checked + label {
+    color: #ffb700;
+}
+
+.choice-criterion {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.choice-criterion:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.choice-criterion label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.form-select {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #4ecdc4;
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+}
+
+.comment-criterion {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.comment-criterion label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.form-textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: inherit;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #4ecdc4;
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+}
+
+.char-counter {
+    text-align: right;
+    font-size: 14px;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.recommendation-criterion {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.recommendation-criterion label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+.recommendation-options {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: normal;
+    padding: 10px 15px;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.radio-option:hover {
+    border-color: #4ecdc4;
+    transform: translateY(-2px);
+}
+
+.radio-option input {
+    margin-right: 10px;
+}
+
+.radio-checkmark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    margin-right: 10px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.radio-option input:checked + .radio-checkmark {
+    border-color: #4ecdc4;
+    background: #4ecdc4;
+}
+
+.radio-option input:checked + .radio-checkmark::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+}
+
+.submit-rating-button {
+    background: #4ecdc4;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 18px;
+    transition: all 0.3s ease;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.submit-rating-button:hover {
+    background: #3db8af;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+}
+
+@media (max-width: 768px) {
+    .rate-page {
+        padding: 15px;
+    }
+    
+    .rating-form {
+        padding: 20px;
+    }
+    
+    .rating-criterion {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .recommendation-options {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .form-select {
+        max-width: 100%;
+    }
+    
+    .auth-actions {
+        flex-direction: column;
+    }
+    
+    .login-button, .register-button {
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Счетчик символов для комментария
+    const commentTextarea = document.getElementById('comment');
+    const charCount = document.getElementById('char-count');
+    
+    if (commentTextarea && charCount) {
+        commentTextarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+    }
+
+    const ratingForm = document.getElementById('ratingForm');
+    if (ratingForm) {
+        // Проверяем обязательные поля перед отправкой
+        ratingForm.addEventListener('submit', function(e) {
+            const foodQuality = document.querySelector('input[name="food_quality"]:checked');
+            const serviceQuality = document.querySelector('input[name="service_quality"]:checked');
+            const atmosphere = document.querySelector('input[name="atmosphere"]:checked');
+            const cleanliness = document.querySelector('input[name="cleanliness"]:checked');
+            const recommend = document.querySelector('input[name="recommend"]:checked');
+            
+            if (!foodQuality || !serviceQuality || !atmosphere || !cleanliness || !recommend) {
+                e.preventDefault();
+                alert('Пожалуйста, заполните все обязательные поля (звезды и рекомендацию)');
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

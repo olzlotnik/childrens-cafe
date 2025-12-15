@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Меню - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="welcome-text">Здесь вы можете выбрать вкусняшки для ваших детей!</p>
+
+<!-- Поисковая форма -->
+<div class="search-container">
+    <form method="get" class="search-form">
+        <div class="search-group">
+            <input type="text" 
+                   name="search" 
+                   placeholder="Поиск по меню..." 
+                   value="{{ search_query }}"
+                   class="search-input">
+            <button type="submit" class="search-button">Найти</button>
+            {% if search_query %}
+            <a href="{% url 'menu:menu_list' %}" class="clear-search">Сбросить</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Результаты поиска -->
+{% if search_query %}
+<div class="search-results">
+    <h3>Результаты поиска для "{{ search_query }}"</h3>
+    <p>Найдено товаров: {{ products|length }}</p>
+</div>
+{% endif %}
+
+<div class="menu-items">
+    {% if products %}
+        {% for product in products %}
+        <div class="menu-item">
+            <img src="{{ product.image }}" alt="{{ product.title }}" class="menu-img">
+            <div class="menu-content">
+                <h3>{{ product.title }}</h3>
+                <p>{{ product.description|truncatewords:5 }}</p>
+                <div class="price">{{ product.price }} руб.</div>
+                <a href="{% url 'menu:product_detail' product.id %}" class="detail-button">Подробнее</a>
+            </div>
+            {% if not forloop.last %}
+            <hr class="menu-divider">
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <!-- Если товары не найдены -->
+        <div class="no-products">
+            <h3>Товары не найдены</h3>
+            <p>Попробуйте изменить поисковый запрос или <a href="{% url 'menu:menu_list' %}">посмотреть все товары</a>.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

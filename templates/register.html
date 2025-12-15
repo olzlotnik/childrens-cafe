@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="login-page">
+    <h1>Регистрация</h1>
+    
+    <form method="post" class="login-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.email.id_for_label }}">Email адрес:</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="error-message" style="color: #ff6b6b; font-size: 14px; margin-top: 5px;">
+                    {{ form.email.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Имя пользователя (необязательно):</label>
+            {{ form.username }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.password1.id_for_label }}">Пароль:</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+                <div class="error-message" style="color: #ff6b6b; font-size: 14px; margin-top: 5px;">
+                    {{ form.password1.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.password2.id_for_label }}">Подтверждение пароля:</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+                <div class="error-message" style="color: #ff6b6b; font-size: 14px; margin-top: 5px;">
+                    {{ form.password2.errors }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="login-button">Зарегистрироваться</button>
+    </form>
+    
+    <div class="login-links" style="text-align: center; margin-top: 20px;">
+        <p>Уже есть аккаунт? <a href="{% url 'homepage:login' %}" style="color: #4ecdc4; font-weight: bold;">Войдите</a></p>
+    </div>
+</div>
+{% endblock %}

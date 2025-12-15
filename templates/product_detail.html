@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.title }} - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="product-detail">
+    <a href="{% url 'menu:menu_list' %}" class="back-link">← Назад к меню</a>
+    
+    <div class="product-header">
+        <h1>{{ product.title }}</h1>
+        <div class="price-large">{{ product.price }} руб.</div>
+    </div>
+    
+    <div class="product-content">
+        <div class="product-image">
+            <img src="{{ product.image }}" alt="{{ product.title }}">
+        </div>
+        
+        <div class="product-info">
+            <div class="description-section">
+                <h2>Описание</h2>
+                <p>{{ product.full_description }}</p>
+            </div>
+            
+            <div class="details-section">
+                <div class="ingredients">
+                    <h3>Состав:</h3>
+                    <ul>
+                        {% for ingredient in product.ingredients %}
+                        <li>{{ ingredient }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="nutrition">
+                    <h3>Пищевая ценность (на порцию):</h3>
+                    <ul>
+                        <li>Калории: {{ product.nutrition.calories }}</li>
+                        <li>Белки: {{ product.nutrition.protein }}</li>
+                        <li>Углеводы: {{ product.nutrition.carbs }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="order-button" id="add-to-cart-btn" data-product-id="{{ product.id }}">Добавить в корзину</button>
+                <a href="{% url 'menu:menu_list' %}" class="back-button">Вернуться в меню</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    
+    if (addToCartBtn) {
+        addToCartBtn.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            addToCart(productId);
+        });
+    }
+});
+
+function addToCart(productId) {
+    const csrfToken = getCSRFToken();
+    
+    fetch('/menu/cart/add/' + productId + '/', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            showCartSuccessModal(data.message);
+            updateCartCount(data.cart_count);
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        alert('Произошла ошибка при добавлении в корзину');
+    });
+}
+
+function showCartSuccessModal(message) {
+    const modal = document.createElement('div');
+    modal.className = 'cart-success-modal';
+    modal.innerHTML = `
+        <div class="cart-success-content">
+            <div class="cart-success-icon">✓</div>
+            <h3>Товар добавлен!</h3>
+            <p>${message}</p>
+            <div class="cart-success-buttons">
+                <a href="/menu/cart/" class="cart-success-button">Перейти в корзину</a>
+                <button class="cart-success-button continue">Продолжить покупки</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const continueButton = modal.querySelector('.cart-success-button.continue');
+    continueButton.addEventListener('click', function() {
+        closeModal(modal);
+    });
+    
+    // Закрытие при клике вне модального окна
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal(modal);
+        }
+    });
+    
+    // Закрытие по Escape
+    document.addEventListener('keydown', function closeOnEscape(e) {
+        if (e.key === 'Escape') {
+            closeModal(modal);
+            document.removeEventListener('keydown', closeOnEscape);
+        }
+    });
+}
+
+function closeModal(modal) {
+    modal.style.animation = 'successFadeOut 0.3s ease-out';
+    setTimeout(() => {
+        if (modal.parentNode) {
+            document.body.removeChild(modal);
+        }
+    }, 300);
+}
+
+function updateCartCount(count) {
+    const cartCountElement = document.getElementById('cart-count');
+    if (cartCountElement) {
+        cartCountElement.textContent = count;
+    }
+}
+
+function getCSRFToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        return csrfToken.value;
+    }
+    return '';
+}
+</script>
+{% endblock %}

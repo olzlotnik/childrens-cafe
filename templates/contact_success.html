@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Сообщение отправлено - Детское кафе "Радуга"{% endblock %}
+
+{% block content %}
+<div class="order-success-page">
+    <div class="success-icon">✓</div>
+    <h1>Сообщение отправлено!</h1>
+    
+    <div class="order-details">
+        <p>Спасибо за ваше сообщение! Мы свяжемся с вами в ближайшее время.</p>
+    </div>
+    
+    <div class="success-actions">
+        <a href="{% url 'contacts:contacts' %}" class="success-action-btn btn-contacts">Назад к контактам</a>
+        <a href="{% url 'homepage:home' %}" class="success-action-btn btn-home">На главную</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.success-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 30px;
+}
+
+.success-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 15px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    white-space: nowrap;
+    box-sizing: border-box;
+    min-width: 200px;
+    height: 54px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.btn-contacts {
+    background: #4ecdc4;
+    color: white;
+    border-color: #4ecdc4;
+}
+
+.btn-contacts:hover {
+    background: #3db8af;
+    border-color: #3db8af;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+}
+
+.btn-home {
+    background: #ffd166;
+    color: #333;
+    border-color: #ffd166;
+}
+
+.btn-home:hover {
+    background: #ffc745;
+    border-color: #ffc745;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 209, 102, 0.4);
+}
+
+@media (max-width: 768px) {
+    .success-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .success-action-btn {
+        width: 100%;
+        min-width: auto;
+    }
+}
+</style>
+{% endblock %}
